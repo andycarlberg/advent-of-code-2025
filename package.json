@@ -4,7 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test": "jest"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest"
   },
   "keywords": [],
   "author": "Andy Carlberg <andycarlberg@gmail.com> (https://www.andycarlberg.com)",
