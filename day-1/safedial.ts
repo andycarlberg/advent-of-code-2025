@@ -1,14 +1,19 @@
+export enum Direction {
+  Left = "L",
+  Right = "R",
+}
+
 export class SafeDial {
   // By problem statement, we start at 50.
-  readonly START_POINT: number = 50;
+  static readonly START_POINT: number = 50;
 
   // There are 100 positions (0-99)
-  readonly NUM_POSITIONS: number = 100;
+  static readonly NUM_POSITIONS: number = 100;
 
   pos: number;
 
   constructor() {
-    this.pos = this.START_POINT;
+    this.pos = SafeDial.START_POINT;
   }
 
   /**
@@ -31,7 +36,7 @@ export class SafeDial {
     for (const instruction of instructions) {
       // If the instruction applied and the current position is 0,
       // we need to increment the count.
-      if (this._doInstruction(instruction) && this.pos === 0) {
+      if (this._moveDial(instruction) && this.pos === 0) {
         countZero++;
       }
     }
@@ -43,7 +48,7 @@ export class SafeDial {
    * Reset the safe dial.
    */
   public reset(): void {
-    this.pos = this.START_POINT;
+    this.pos = SafeDial.START_POINT;
   }
 
   /**
@@ -52,12 +57,36 @@ export class SafeDial {
    * @param instruction The instruction indicating direction and ticks
    * @throws {Error} If the instruction is invalid.
    */
-  private _doInstruction(instruction: string): boolean {
+  private _moveDial(instruction: string): boolean {
+    const parsed = this._parseInstrucion(instruction);
+    if (!parsed) {
+      return false;
+    }
+    const { dir, numTicks } = parsed;
+
+    if (dir === "L") {
+      // Subtract the number of ticks and modulo to get the position.
+      // Add back the number of positions to get a positive value in case it
+      // was negative.
+      // Modulo again to get the corrected positive position.
+      this.pos = (this.pos - numTicks) % SafeDial.NUM_POSITIONS;
+      this.pos = (this.pos + SafeDial.NUM_POSITIONS) % SafeDial.NUM_POSITIONS;
+    } else if (dir === "R") {
+      // Add the number of ticks and modulo to get the position.
+      this.pos = (this.pos + numTicks) % SafeDial.NUM_POSITIONS;
+    }
+
+    return true;
+  }
+
+  private _parseInstrucion(
+    instruction: string,
+  ): { dir: string; numTicks: number } | null {
     instruction = instruction.trim();
 
     // if the instruction is empty or only whitespace, do nothing.
     if (instruction.length === 0) {
-      return false;
+      return null;
     }
 
     // Matches instructions in exactly our format.
@@ -73,20 +102,6 @@ export class SafeDial {
     // We can assume strTicks will be defined because otherwise the regex would
     // have failed and returned null, caught in the previous if statement.
     const numTicks = parseInt(strTicks!);
-
-    if (dir === "L") {
-      // Subtract the number of ticks and modulo to get the position.
-      // Add back the number of positions to get a positive value in case it
-      // was negative.
-      // Modulo again to get the corrected positive position.
-      this.pos =
-        (((this.pos - numTicks) % this.NUM_POSITIONS) + this.NUM_POSITIONS) %
-        this.NUM_POSITIONS;
-    } else if (dir === "R") {
-      // Add the number of ticks and modulo to get the position.
-      this.pos = (this.pos + numTicks) % this.NUM_POSITIONS;
-    }
-
-    return true;
+    return { dir, numTicks };
   }
 }
