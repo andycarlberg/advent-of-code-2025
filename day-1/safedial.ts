@@ -62,7 +62,7 @@ export class SafeDial {
     let endPos: number;
     let countZeros = 0;
 
-    if (dir === "L") {
+    if (dir === Direction.Left) {
       // Subtract the number of ticks and modulo to get the position.
       // Add back the number of positions to get a positive value in case it
       // was negative.
@@ -70,21 +70,18 @@ export class SafeDial {
       endPos = (startPos - numTicks) % SafeDial.NUM_POSITIONS;
       endPos = (endPos + SafeDial.NUM_POSITIONS) % SafeDial.NUM_POSITIONS;
 
-      if (numTicks == 0) {
-        countZeros = 0;
-      } else if (numTicks < startPos) {
-        countZeros = 0;
-      } else if (numTicks == startPos) {
-        countZeros = 1;
-      } else if (numTicks > startPos) {
-        if (startPos != 0) {
-          countZeros = 1;
+      // Check if a crossing could potentially happen
+      if (numTicks > 0 && numTicks >= startPos) {
+        const ticksToFirstZero =
+          startPos === 0 ? SafeDial.NUM_POSITIONS : startPos;
+        // If there are enough ticks to cross zero, proceed
+        if (numTicks >= ticksToFirstZero) {
+          countZeros =
+            1 +
+            Math.floor((numTicks - ticksToFirstZero) / SafeDial.NUM_POSITIONS);
         }
-        countZeros += Math.floor(
-          (numTicks - startPos) / SafeDial.NUM_POSITIONS,
-        );
       }
-    } else if (dir === "R") {
+    } else if (dir === Direction.Right) {
       // Add the number of ticks and modulo to get the position.
       endPos = (startPos + numTicks) % SafeDial.NUM_POSITIONS;
       countZeros = Math.floor((startPos + numTicks) / SafeDial.NUM_POSITIONS);
@@ -109,7 +106,7 @@ export class SafeDial {
     dir: Direction;
     numTicks: number;
   } {
-    const match = instruction.match(/^([L|R])([0-9]+)$/);
+    const match = instruction.match(/^([LR])([0-9]+)$/);
 
     if (!match) {
       throw new Error(`Invalid instruction: "${instruction}"`);
