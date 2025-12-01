@@ -29,14 +29,13 @@ export class SafeDial {
    * @throws {Error} If the input is invalid
    */
   public run(input: string): number {
-    const instructions = input.split(/\r\n|\r|\n/);
+    const parsedInstructions = SafeDial._parseAll(input);
 
     let countZero = 0;
 
-    for (const instruction of instructions) {
-      // If the instruction applied and the current position is 0,
-      // we need to increment the count.
-      if (this._moveDial(instruction) && this.pos === 0) {
+    for (const instruction of parsedInstructions) {
+      this._moveDial(instruction.dir, instruction.numTicks);
+      if (this.pos === 0) {
         countZero++;
       }
     }
@@ -57,13 +56,7 @@ export class SafeDial {
    * @param instruction The instruction indicating direction and ticks
    * @throws {Error} If the instruction is invalid.
    */
-  private _moveDial(instruction: string): boolean {
-    const parsed = this._parseInstrucion(instruction);
-    if (!parsed) {
-      return false;
-    }
-    const { dir, numTicks } = parsed;
-
+  private _moveDial(dir: Direction, numTicks: number): void {
     if (dir === "L") {
       // Subtract the number of ticks and modulo to get the position.
       // Add back the number of positions to get a positive value in case it
@@ -75,33 +68,30 @@ export class SafeDial {
       // Add the number of ticks and modulo to get the position.
       this.pos = (this.pos + numTicks) % SafeDial.NUM_POSITIONS;
     }
-
-    return true;
   }
 
-  private _parseInstrucion(
-    instruction: string,
-  ): { dir: string; numTicks: number } | null {
-    instruction = instruction.trim();
+  private static _parseAll(
+    input: string,
+  ): { dir: Direction; numTicks: number }[] {
+    return input
+      .split(/\r\n|\r|\n/)
+      .map((line) => line.trim()) // Trim the lines
+      .filter((line) => line.length > 0) // Remove empty lines
+      .map((line) => SafeDial._validateAndParse(line)); // Use the new function
+  }
 
-    // if the instruction is empty or only whitespace, do nothing.
-    if (instruction.length === 0) {
-      return null;
-    }
-
-    // Matches instructions in exactly our format.
-    // first group is direction, second group is ticks.
-    // Anything else fails and match is null.
+  private static _validateAndParse(instruction: string): {
+    dir: Direction;
+    numTicks: number;
+  } {
     const match = instruction.match(/^([L|R])([0-9]+)$/);
+
     if (!match) {
-      throw new Error("Invalid instruction.");
+      throw new Error(`Invalid instruction: "${instruction}"`);
     }
 
-    // Swallow the full match and extract groups.
-    const [, dir, strTicks] = match;
-    // We can assume strTicks will be defined because otherwise the regex would
-    // have failed and returned null, caught in the previous if statement.
-    const numTicks = parseInt(strTicks!);
+    const dir = match[1] as Direction;
+    const numTicks = parseInt(match[2]);
     return { dir, numTicks };
   }
 }
