@@ -1,7 +1,9 @@
-export enum Direction {
-  Left = "L",
-  Right = "R",
-}
+export const Direction = {
+  Left: "L",
+  Right: "R",
+} as const;
+
+export type Direction = (typeof Direction)[keyof typeof Direction];
 
 export class SafeDial {
   // By problem statement, we start at 50.
@@ -34,10 +36,8 @@ export class SafeDial {
     let countZero = 0;
 
     for (const instruction of parsedInstructions) {
-      this._moveDial(instruction.dir, instruction.numTicks);
-      if (this.pos === 0) {
-        countZero++;
-      }
+      // Accumulate the count of zero-crossings/stops returned by _moveDial
+      countZero += this._moveDial(instruction.dir, instruction.numTicks);
     }
 
     return countZero;
@@ -51,23 +51,48 @@ export class SafeDial {
   }
 
   /**
-   * Apply a given instruction to the safe dial.
+   * Apply a given instruction to the safe dial and return the count of zero-crossings/stops.
    *
-   * @param instruction The instruction indicating direction and ticks
-   * @throws {Error} If the instruction is invalid.
+   * @param dir The instruction indicating direction
+   * @param numTicks The number of ticks to move
+   * @returns The number of times the dial passed or stopped at 0 during this move.
    */
-  private _moveDial(dir: Direction, numTicks: number): void {
+  private _moveDial(dir: Direction, numTicks: number): number {
+    const startPos = this.pos;
+    let endPos: number;
+    let countZeros = 0;
+
     if (dir === "L") {
       // Subtract the number of ticks and modulo to get the position.
       // Add back the number of positions to get a positive value in case it
       // was negative.
       // Modulo again to get the corrected positive position.
-      this.pos = (this.pos - numTicks) % SafeDial.NUM_POSITIONS;
-      this.pos = (this.pos + SafeDial.NUM_POSITIONS) % SafeDial.NUM_POSITIONS;
+      endPos = (startPos - numTicks) % SafeDial.NUM_POSITIONS;
+      endPos = (endPos + SafeDial.NUM_POSITIONS) % SafeDial.NUM_POSITIONS;
+
+      if (numTicks == 0) {
+        countZeros = 0;
+      } else if (numTicks < startPos) {
+        countZeros = 0;
+      } else if (numTicks == startPos) {
+        countZeros = 1;
+      } else if (numTicks > startPos) {
+        if (startPos != 0) {
+          countZeros = 1;
+        }
+        countZeros += Math.floor(
+          (numTicks - startPos) / SafeDial.NUM_POSITIONS,
+        );
+      }
     } else if (dir === "R") {
       // Add the number of ticks and modulo to get the position.
-      this.pos = (this.pos + numTicks) % SafeDial.NUM_POSITIONS;
+      endPos = (startPos + numTicks) % SafeDial.NUM_POSITIONS;
+      countZeros = Math.floor((startPos + numTicks) / SafeDial.NUM_POSITIONS);
     }
+
+    this.pos = endPos!;
+
+    return countZeros;
   }
 
   private static _parseAll(
