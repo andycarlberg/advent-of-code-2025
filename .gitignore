@@ -1,0 +1,49 @@
+# -----------------------------------------------------------------
+# PNPM
+# -----------------------------------------------------------------
+# Dependency installation directory (symlinks to global store)
+/node_modules
+
+# pnpm store (typically outside the project, but exclude just in case)
+/pnpm-lock.yaml
+/.pnpm-store
+
+# -----------------------------------------------------------------
+# BUILD OUTPUT (TypeScript & Babel)
+# -----------------------------------------------------------------
+# Standard TypeScript/Babel compilation output directory
+/dist
+/build
+/out
+/es
+/lib
+
+# Map files (sourcemaps)
+# Typically generated alongside JS files in the output directory
+/**/*.map
+
+# -----------------------------------------------------------------
+# JEST / TESTING
+# -----------------------------------------------------------------
+# Jest cache directory
+/coverage
+/.jest-cache
+
+# -----------------------------------------------------------------
+# EDITOR / OS
+# -----------------------------------------------------------------
+# VS Code specific files
+/.vscode/*
+!/.vscode/settings.json # Optional: Keep shared settings/extensions
+!/.vscode/extensions.json
+!/.vscode/launch.json
+
+# Logs
+/logs
+/npm-debug.log*
+/yarn-debug.log*
+/pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
