@@ -1,20 +1,19 @@
 import { describe, expect, test } from "@jest/globals";
 import { Solution } from "./solution";
 
-describe("Advent of Code Day 3: Lobby (Battery Joltage)", () => {
-  // The required total joltage for the example input.
-  // Calculations: 98 + 89 + 78 + 92 = 357
-  const EXAMPLE_INPUT_SUM = 357;
-
+describe("Advent of Code Day 3: Lobby (Part Two: Max Twelve-Digit Joltage)", () => {
   const solver = new Solution();
 
-  test("Provided Example: All Banks Sum Correctly", () => {
+  // Calculations: 987654321111 + 811111111119 + 434234234278 + 888911112111 = 3121910778619
+  const EXAMPLE_INPUT_SUM = 3121910778619n; // Use BigInt for large numbers
+
+  // =========================================================
+  // ## Core Logic Tests (N=12 Fixed)
+  // =========================================================
+
+  test("Provided Example: All Banks Sum Correctly (3,121,910,778,619)", () => {
     /*
-     * This example covers the four main banks and their corresponding max joltages:
-     * 987654321111111 -> 98 (9 and 8)
-     * 811111111111119 -> 89 (8 and 9)
-     * 234234234234278 -> 78 (7 and 8)
-     * 818181911112111 -> 92 (9 and 2)
+     * Note: The Solution.solve method must return a BigInt for the total sum.
      */
     const exampleInput = `
             987654321111111
@@ -22,87 +21,67 @@ describe("Advent of Code Day 3: Lobby (Battery Joltage)", () => {
             234234234234278
             818181911112111
         `;
-
+    // The solve function is called with only the input string
     expect(solver.solve(exampleInput)).toBe(EXAMPLE_INPUT_SUM);
   });
 
-  // --- Boundary Conditions and Max Joltage Logic ---
-  describe("Max Joltage Logic for Single Banks", () => {
-    test("Maximum joltage (99) at the start of the bank", () => {
-      // Max joltage is 99 (9 at index 0, 9 at index 1).
-      const input = `991111`;
-      expect(solver.solve(input)).toBe(99);
+  describe("Greedy Selection and Dropping Logic", () => {
+    test("Bank where the maximum number requires dropping low-value digits in the middle", () => {
+      // Bank length: 14. N=12. Must drop 2 digits.
+      // Output: 999876543211 (Drop the 0s at indices 3 and 7)
+      const input = `99908760543211`;
+      const expected = 999876543211n;
+      expect(solver.solve(input)).toBe(expected);
     });
 
-    test("Maximum joltage (99) at the end of the bank", () => {
-      // Max joltage is 99 (9 at index 5, 9 at index 6).
-      const input = `1111199`;
-      expect(solver.solve(input)).toBe(99);
+    test("Max output where dropping the first digit is the only correct choice (1 is weakest)", () => {
+      // Bank length: 13. N=12. Must drop 1 digit.
+      // Dropping '1' yields 987654321111.
+      const input = `1987654321111`;
+      const expected = 987654321111n;
+      expect(solver.solve(input)).toBe(expected);
     });
 
-    test("Digits are far apart, forming max joltage 89 (8 followed by 9)", () => {
-      // Largest digits are 9 and 8. 98 is impossible (9 is not followed by 8).
-      // Max is 89 (8 at index 2, 9 at index 7).
-      const input = `11811119`;
-      expect(solver.solve(input)).toBe(89);
+    test("Bank where multiple identical low digits must be dropped consecutively", () => {
+      // Bank length: 15. N=12. Must drop 3 digits.
+      // Output: 999999999999 (The three '1's must be dropped)
+      const input = `99999911199999`;
+      const expected = 999999199999n;
+      expect(solver.solve(input)).toBe(expected);
     });
 
-    test("Only two digits, ensuring correct output", () => {
-      // Max joltage is 64.
-      const input = `64`;
-      expect(solver.solve(input)).toBe(64);
-    });
-
-    test("Ascending digits should still find the highest pair (56)", () => {
-      // Max joltage is 56 (5 at index 4, 6 at index 5).
-      const input = `123456`;
-      expect(solver.solve(input)).toBe(56);
-    });
-
-    test("Largest digit appears first (9), find largest second digit (8) later", () => {
-      // Max joltage is 98 (9 at index 0, 8 at index 4).
-      const input = `91238`;
-      expect(solver.solve(input)).toBe(98);
+    test("Bank where only one digit can be dropped (N=12)", () => {
+      // Bank length: 13. N=12. Drop the leading '1' to get 987654321119.
+      const input = `1987654321119`;
+      const expected = 987654321119n;
+      expect(solver.solve(input)).toBe(expected);
     });
   });
 
-  // --- Input Format and Edge Cases ---
-  describe("Input Format and Edge Cases for Multiple Banks", () => {
-    test("Input containing only a single bank", () => {
-      // Max joltage is 43. Total sum is 43.
-      const input = `4193`;
-      expect(solver.solve(input)).toBe(93);
-    });
+  // =========================================================
+  // ## Input Format and Edge Cases
+  // =========================================================
 
-    test("Input containing banks of varying lengths", () => {
-      const input = `
-                918
-                591
-                1234
-                77
-            `;
-      // Total: 98 + 91 + 34 + 77 = 300
-      expect(solver.solve(input)).toBe(300);
-    });
+  describe("Input Format and Edge Cases", () => {
+    // The implementation must now define the constant N=12 internally
+    const N = 12;
 
     test("Empty input should result in zero", () => {
-      expect(solver.solve("")).toBe(0);
+      expect(solver.solve("")).toBe(0n);
     });
 
-    test("Input with unexpected formatting (extra spaces, tabs, newline)", () => {
-      // Bank 1: 918 -> 98
-      // Bank 2: 777 -> 77
-      const messyInput = ` 918 
-            
-            777
-            `;
-      // Total: 98 + 77 = 175
-      expect(solver.solve(messyInput)).toBe(175);
+    test("Input line length equals N (no digits to drop)", () => {
+      // Bank length: 12. N=12. Output is the full string.
+      const input = `987654321111`;
+      const expected = 987654321111n;
+      expect(solver.solve(input)).toBe(expected);
     });
 
-    test("Input with non-whitespace, non-digit characters", () => {
-      const input = `12A45`;
-      expect(solver.solve(input)).toBe(0);
+    test("Input line length is less than N (invalid bank must be filtered)", () => {
+      // First line has 11 digits (invalid, should be filtered). Second line is valid.
+      const input = `11111111111\n987654321111`;
+      const expected = 987654321111n;
+      expect(solver.solve(input)).toBe(expected);
     });
   });
 });

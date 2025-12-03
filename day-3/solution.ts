@@ -1,26 +1,42 @@
 export class Solution {
-  static readonly BANK_REGEXP: RegExp = /^[1-9]{2,}$/;
+  static readonly BANK_REGEXP: RegExp = /^[0-9]{12,}$/;
 
-  public solve(input: string): number {
+  static readonly TARGET_LENGTH = 12;
+
+  public solve(input: string): bigint {
     const banks = Solution.parseInput(input);
 
-    let sum = 0;
+    let sum = 0n;
     for (const bank of banks) {
-      sum += this.maxOutput(bank);
+      sum = sum + this.maxOutput(bank);
     }
 
     return sum;
   }
 
-  private maxOutput(bank: string): number {
-    const bankMax = new MaxVoltage();
-
+  private maxOutput(bank: string): bigint {
+    const stack: bigint[] = [];
+    let countToDrop = bank.length - Solution.TARGET_LENGTH;
     for (const char of bank) {
-      const voltage = parseInt(char);
-      bankMax.testAndUpdate(voltage);
+      const voltage = BigInt(char);
+
+      // We need to compare our current digit and drop digits as necessary
+      // until we either have only 12 digits remaining or we run into a value
+      // greater than our current value.
+      while (countToDrop > 0 && voltage > stack[stack.length - 1]) {
+        stack.pop();
+        countToDrop--;
+      }
+
+      // Since we always add it, it will eventually fill.
+      stack.push(voltage);
     }
 
-    return bankMax.value();
+    // Truncate to TARGET_LENGTH
+    stack.length = Solution.TARGET_LENGTH;
+
+    const stringValue = stack.join("");
+    return BigInt(stringValue);
   }
 
   private static parseInput(input: string): string[] {
@@ -28,31 +44,5 @@ export class Solution {
       .split(/\r\n|\r|\n/)
       .map((line) => line.trim()) // Trim the lines
       .filter((line) => Solution.BANK_REGEXP.test(line)); // Validate input
-  }
-}
-
-class MaxVoltage {
-  private currentMax = 0;
-  private bestTensDigit = 0;
-
-  testAndUpdate(value: number): void {
-    // Check if the new value in the ones place creates a new max
-    const potentialMax = this.bestTensDigit * 10 + value;
-    if (potentialMax > this.currentMax) {
-      this.currentMax = potentialMax;
-    }
-
-    // Check if the new value would be a better tens digit if there is another
-    // value is provided. If this is the last digit to be applied, then the
-    // currentMax doesn't change. If another digit is provided then this value
-    // must be greater than the previous max no matter what. The previous check
-    // will capture it.
-    if (value > this.bestTensDigit) {
-      this.bestTensDigit = value;
-    }
-  }
-
-  value(): number {
-    return this.currentMax;
   }
 }
