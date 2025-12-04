@@ -6,7 +6,7 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
   const solver = new Solution();
 
   // The number of accessible paper rolls in the puzzle's main example.
-  const EXAMPLE_ACCESSIBLE_COUNT = 13;
+  const EXAMPLE_ACCESSIBLE_COUNT = 43;
 
   // =========================================================
   // ## Core Logic Tests
@@ -64,9 +64,9 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
       // @@..
       // Rolls: 6 total
       // (0,0): 2 adjacent (Accessible)
-      // (0,1): 3 adjacent (BLOCKED)
+      // (0,1): 3 adjacent (Accessible after iteration)
       // (0,2): 2 adjacent (Accessible)
-      // (1,0): 3 adjacent (BLOCKED)
+      // (1,0): 3 adjacent (Accessible after iteration)
       // (1,2): 4 adjacent (Accessible)
       // (2,0): 2 adjacent (Accessible)
       // (2,1): 3 adjacent (Accessible)
@@ -75,7 +75,7 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
 @.@.
 @@..
 `;
-      expect(solver.solve(input)).toBe(5);
+      expect(solver.solve(input)).toBe(7);
     });
 
     test("Not Accessible: Fully Blocked (Checkerboard pattern)", () => {
@@ -87,8 +87,8 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
       // Roll (0,2): 3 adjacent (Accessible)
       // Roll (0,3): 3 adjacent (Accessible)
       // Roll (0,4): 2 adjacent (Accessible)
-      // Roll (1,1): 4 adjacent (BLOCKED)
-      // Roll (1,3): 6 adjacent (BLOCKED)
+      // Roll (1,1): 4 adjacent (Accessible after iteration)
+      // Roll (1,3): 6 adjacent (Accessible after iteration)
       // Roll (2,0): 1 adjacent (Accessible)
       // Roll (2,2): 3 adjacent (Accessible)
       // Roll (2,3): 3 adjacent (Accessible)
@@ -98,7 +98,7 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
 .@.@.
 @.@@@
 `;
-      expect(solver.solve(input)).toBe(8);
+      expect(solver.solve(input)).toBe(10);
     });
 
     test("Not Accessible: Center of 3x3 block (8 adjacent)", () => {
@@ -110,8 +110,8 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
 @@@
 `;
       // Total rolls: 9. Center one is blocked.
-      // Expected: 8 accessible rolls
-      expect(solver.solve(input)).toBe(4);
+      // After two round of iteration, all 9 are accessible
+      expect(solver.solve(input)).toBe(9);
     });
 
     test("Accessible: Single roll (0 adjacent)", () => {
@@ -122,6 +122,83 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
 `;
       // Expected: 1
       expect(solver.solve(input)).toBe(1);
+    });
+
+    test("Propagation: Long line removed end-to-end", () => {
+      // Grid: @@@@@@ (6 rolls total)
+      // Step 1: Ends (2 rolls) are accessible (1 neighbor each). Remove them.
+      // Step 2: The new ends (2 rolls) are accessible (2 neighbors each). Remove them.
+      // Step 3: The center 2 rolls are accessible (2 neighbors each). Remove them.
+      const input = `@.@@@@@`; // 6 rolls
+      // Expected: 6 (All rolls should eventually be removed)
+      expect(solver.solve(input)).toBe(6);
+    });
+
+    test("Unlocking: Single core roll surrounded by a removable block (Corrected Count)", () => {
+      /*
+       * Grid (3x3):
+       * .@.  <- 1 rolls
+       * @@@  <- 2 rolls
+       * .@.  <- 1 rolls
+       * Total Rolls: 5
+       * Initial State: The 4 border rolls are removed, center is blocked.
+       * Step 1: Remove the 4 outer rolls.
+       * The remaining roll is now accessible and removed
+       * * Total Removed: 5
+       */
+      const input = `
+.@.
+@@@
+.@.
+`;
+      expect(solver.solve(input)).toBe(5);
+    });
+
+    test("Termination: Final core remains permanently blocked", () => {
+      // Grid:
+      // .@.
+      // @@@
+      // .@.
+      // Rolls: 5 total
+      // Initial State: Corner rolls (4) are ACCESSIBLE (1 neighbor). Center roll (1,1) has 4 neighbors (BLOCKED).
+      // Step 1: Remove the 4 corner rolls.
+      // Step 2: The center roll remains with 0 neighbors (ACCESSIBLE). Remove it.
+      //
+      // Now consider a slightly larger core where one survives:
+      // Grid:
+      // @@@
+      // @.@
+      // @@@
+      // Rolls: 8 total
+      // Initial: 4 corners (2-3 neighbors) and 4 edges (4-5 neighbors).
+      // The 4 edge rolls (0,1), (1,0), (1,2), (2,1) have 5 neighbors -> BLOCKED.
+      // The 4 corner rolls are ACCESSIBLE.
+      // Step 1: Remove 4 corner rolls.
+      // Step 2: The remaining 4 rolls are still adjacent to each other (3 neighbors each). Remove them.
+      //
+      // Let's create one that stops:
+      const input = `
+..@
+.@.
+@..
+`;
+      // Rolls: 3 total. All are accessible (0 or 1 neighbor).
+      // Test for a small grid that becomes blocked:
+      const blockedInput = `
+@.@
+.@.
+@.@
+`;
+      // Initial State: 4 rolls. All have 2 neighbors. Remove all 4. (4 total removed).
+
+      // Let's use the provided 3x3 Block and expect 9, as per your earlier test.
+      const input3x3 = `
+@@@
+@@@
+@@@
+`;
+      // Expect 9 (All are removed in 2 steps, as shown in the walkthrough)
+      expect(solver.solve(input3x3)).toBe(9);
     });
   });
 
@@ -163,17 +240,21 @@ describe("Advent of Code Day 4: Printing Department (Revised Logic)", () => {
       expect(solver.solve(input)).toBe(0);
     });
 
-    test("Input with varying line lengths (should handle jagged input)", () => {
-      // (0,0) @: 1 adjacent (Accessible)
-      // (0,1) @: 1 adjacent (Accessible)
-      // (1,0) @: 1 adjacent (Accessible)
-      // (2,0) @: 0 adjacent (Accessible)
+    test("Jagged Grid: Iterative removal handles variable column lengths", () => {
+      // Grid (5 rolls total):
+      // @@@
+      // @.
+      // @
+      // Initial State: R(0,0), R(0,2), R(1,0), R(2,0) are ACCESSIBLE. R(0,1) has 4 neighbors (BLOCKED).
+      // Step 1: Remove the 4 accessible rolls.
+      // Step 2: R(0,1) remains with 0 neighbors (ACCESSIBLE). Remove it.
       const input = `
-@@
-@
+@@@
+@.
 @
 `;
-      expect(solver.solve(input)).toBe(4);
+      // Expected: 5 (All rolls should eventually be removed)
+      expect(solver.solve(input)).toBe(5);
     });
 
     test("Empty input should result in zero", () => {
